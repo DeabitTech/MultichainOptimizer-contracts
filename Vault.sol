@@ -7,14 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 import "./interfaces/IStrategyPL.sol";
 
-/**
- * @dev Implementation of a vault to deposit funds for yield optimizing.
- * This is the contract that receives funds and that users interface with.
- * The yield optimizing strategy itself is implemented in a separate 'Strategy.sol' contract.
- */
+
 contract Vault is ERC20, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -35,10 +30,6 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
     event UpgradeStrat(address implementation);
 
     /**
-     * @dev Sets the value of {token} to the token that the vault will
-     * hold as underlying value. It initializes the vault's own 'moo' token.
-     * This token is minted when someone does a deposit. It is burned in order
-     * to withdraw the corresponding portion of the underlying assets.
      * @param _strategy the address of the strategy.
      * @param _name the name of the vault token.
      * @param _symbol the symbol of the vault token.
@@ -65,12 +56,6 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
         return want().balanceOf(address(this)).add(IStrategy(strategy).balanceOf());
     }
 
-    /**
-     * @dev Custom logic in here for how much the vault allows to be borrowed.
-     * We return 100% of tokens for now. Under certain conditions we might
-     * want to keep some of the system funds at hand in the vault, instead
-     * of putting them to work.
-     */
     function available() public view returns (uint256) {
         return want().balanceOf(address(this));
     }
@@ -128,11 +113,7 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
         withdraw(balanceOf(msg.sender));
     }
 
-    /**
-     * @dev Function to exit the system. The vault will withdraw the required tokens
-     * from the strategy and pay up the token holder. A proportional number of IOU
-     * tokens are burned in the process.
-     */
+ 
     function withdraw(uint256 _shares) public {
         uint256 r = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
@@ -165,11 +146,7 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
         emit NewStratCandidate(_implementation);
     }
 
-    /** 
-     * @dev It switches the active strat for the strat candidate. After upgrading, the 
-     * candidate implementation is set to the 0x00 address, and proposedTime to a time 
-     * happening in +100 years for safety. 
-     */
+ 
 
     function upgradeStrat() public onlyOwner {
         require(stratCandidate.implementation != address(0), "There is no candidate");

@@ -1,17 +1,5 @@
-// SPDX-License-Identifier: GPLv2
+// SPDX-License-Identifier: UNLICENSED
 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-
-// @author Wivern for Beefy.Finance
-// @notice This contract adds liquidity to Uniswap V2 compatible liquidity pair pools and stake.
 
 pragma solidity >=0.7.6;
 
@@ -26,17 +14,17 @@ interface IWETH is IERC20 {
     function withdraw(uint256 wad) external;
 }
 
-interface IBeefyVault is IERC20 {
+interface IVault is IERC20 {
     function deposit(uint256 amount) external;
     function withdraw(uint256 shares) external;
-    function want() external pure returns (address); // Beefy Vault V6
-    function token() external pure returns (address); // Beefy Vault V5
+    function want() external pure returns (address);
+    function token() external pure returns (address); 
 }
 
-contract BeefyZapUniswapV2 {
+contract ZapUniswapV2 {
     using LowGasSafeMath for uint256;
     using SafeERC20 for IERC20;
-    using SafeERC20 for IBeefyVault;
+    using SafeERC20 for IVault;
 
     IUniswapV2Router02 public immutable router;
     address public immutable WETH;
@@ -55,27 +43,27 @@ contract BeefyZapUniswapV2 {
         assert(msg.sender == WETH);
     }
 
-    function beefInETH (address beefyVault, uint256 tokenAmountOutMin) external payable {
-        require(msg.value >= minimumAmount, 'Beefy: Insignificant input amount');
+    function zapInETH (address addrVault, uint256 tokenAmountOutMin) external payable {
+        require(msg.value >= minimumAmount, 'Insignificant input amount');
 
         IWETH(WETH).deposit{value: msg.value}();
 
-        _swapAndStake(beefyVault, tokenAmountOutMin, WETH);
+        _swapAndStake(addrVault, tokenAmountOutMin, WETH);
     }
 
-    function beefIn (address beefyVault, uint256 tokenAmountOutMin, address tokenIn, uint256 tokenInAmount) external {
-        require(tokenInAmount >= minimumAmount, 'Beefy: Insignificant input amount');
-        require(IERC20(tokenIn).allowance(msg.sender, address(this)) >= tokenInAmount, 'Beefy: Input token is not approved');
+    function zapIn (address addrVault, uint256 tokenAmountOutMin, address tokenIn, uint256 tokenInAmount) external {
+        require(tokenInAmount >= minimumAmount, 'Insignificant input amount');
+        require(IERC20(tokenIn).allowance(msg.sender, address(this)) >= tokenInAmount, 'Input token is not approved');
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), tokenInAmount);
 
-        _swapAndStake(beefyVault, tokenAmountOutMin, tokenIn);
+        _swapAndStake(addrVault, tokenAmountOutMin, tokenIn);
     }
 
-    function beefOut (address beefyVault, uint256 withdrawAmount) external {
-        (IBeefyVault vault, IUniswapV2Pair pair) = _getVaultPair(beefyVault);
+    function zapOut (address addrVault, uint256 withdrawAmount) external {
+        (IVault vault, IUniswapV2Pair pair) = _getVaultPair(addrVault);
 
-        IERC20(beefyVault).safeTransferFrom(msg.sender, address(this), withdrawAmount);
+        IERC20(addrVault).safeTransferFrom(msg.sender, address(this), withdrawAmount);
         vault.withdraw(withdrawAmount);
 
         if (pair.token0() != WETH && pair.token1() != WETH) {
@@ -91,11 +79,11 @@ contract BeefyZapUniswapV2 {
         _returnAssets(tokens);
     }
 
-    function beefOutAndSwap(address beefyVault, uint256 withdrawAmount, address desiredToken, uint256 desiredTokenOutMin) external {
-        (IBeefyVault vault, IUniswapV2Pair pair) = _getVaultPair(beefyVault);
+    function zapOutAndSwap(address addrVault, uint256 withdrawAmount, address desiredToken, uint256 desiredTokenOutMin) external {
+        (IVault vault, IUniswapV2Pair pair) = _getVaultPair(addrVault);
         address token0 = pair.token0();
         address token1 = pair.token1();
-        require(token0 == desiredToken || token1 == desiredToken, 'Beefy: desired token not present in liquidity pair');
+        require(token0 == desiredToken || token1 == desiredToken, '  desired token not present in liquidity pair');
 
         vault.safeTransferFrom(msg.sender, address(this), withdrawAmount);
         vault.withdraw(withdrawAmount);
@@ -120,26 +108,26 @@ contract BeefyZapUniswapV2 {
         require(amount1 >= minimumAmount, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
     }
 
-    function _getVaultPair (address beefyVault) private view returns (IBeefyVault vault, IUniswapV2Pair pair) {
-        vault = IBeefyVault(beefyVault);
+    function _getVaultPair (address addrVault) private view returns (IVault vault, IUniswapV2Pair pair) {
+        vault = IVault(addrVault);
 
         try vault.want() returns (address pairAddress) {
-            pair = IUniswapV2Pair(pairAddress); // Vault V6
+            pair = IUniswapV2Pair(pairAddress); 
         } catch {
-            pair = IUniswapV2Pair(vault.token()); // Vault V5
+            pair = IUniswapV2Pair(vault.token()); 
         }
 
-        require(pair.factory() == router.factory(), 'Beefy: Incompatible liquidity pair factory');
+        require(pair.factory() == router.factory(), 'Incompatible liquidity pair factory');
     }
 
-    function _swapAndStake(address beefyVault, uint256 tokenAmountOutMin, address tokenIn) private {
-        (IBeefyVault vault, IUniswapV2Pair pair) = _getVaultPair(beefyVault);
+    function _swapAndStake(address addrVault, uint256 tokenAmountOutMin, address tokenIn) private {
+        (IVault vault, IUniswapV2Pair pair) = _getVaultPair(addrVault);
 
         (uint256 reserveA, uint256 reserveB,) = pair.getReserves();
-        require(reserveA > minimumAmount && reserveB > minimumAmount, 'Beefy: Liquidity pair reserves too low');
+        require(reserveA > minimumAmount && reserveB > minimumAmount, 'Liquidity pair reserves too low');
 
         bool isInputA = pair.token0() == tokenIn;
-        require(isInputA || pair.token1() == tokenIn, 'Beefy: Input token not present in liquidity pair');
+        require(isInputA || pair.token1() == tokenIn, 'Input token not present in liquidity pair');
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
@@ -176,7 +164,7 @@ contract BeefyZapUniswapV2 {
                 if (tokens[i] == WETH) {
                     IWETH(WETH).withdraw(balance);
                     (bool success,) = msg.sender.call{value: balance}(new bytes(0));
-                    require(success, 'Beefy: ETH transfer failed');
+                    require(success, 'ETH transfer failed');
                 } else {
                     IERC20(tokens[i]).safeTransfer(msg.sender, balance);
                 }
@@ -191,11 +179,11 @@ contract BeefyZapUniswapV2 {
         swapAmount = investmentA.sub(Babylonian.sqrt(halfInvestment * halfInvestment * nominator / denominator));
     }
 
-    function estimateSwap(address beefyVault, address tokenIn, uint256 fullInvestmentIn) public view returns(uint256 swapAmountIn, uint256 swapAmountOut, address swapTokenOut) {
-        (, IUniswapV2Pair pair) = _getVaultPair(beefyVault);
+    function estimateSwap(address addrVault, address tokenIn, uint256 fullInvestmentIn) public view returns(uint256 swapAmountIn, uint256 swapAmountOut, address swapTokenOut) {
+        (, IUniswapV2Pair pair) = _getVaultPair(addrVault);
 
         bool isInputA = pair.token0() == tokenIn;
-        require(isInputA || pair.token1() == tokenIn, 'Beefy: Input token not present in liquidity pair');
+        require(isInputA || pair.token1() == tokenIn, 'Input token not present in liquidity pair');
 
         (uint256 reserveA, uint256 reserveB,) = pair.getReserves();
         (reserveA, reserveB) = isInputA ? (reserveA, reserveB) : (reserveB, reserveA);

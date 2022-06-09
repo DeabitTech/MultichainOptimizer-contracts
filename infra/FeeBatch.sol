@@ -69,7 +69,7 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
         wNativeToGovTokenRoute = [_wNative, _govToken];
     }
 
-    // Main function. Divides Beefy's profits.
+    // Main function. Divides platform profits.
     function harvest() public {
         uint256 wNativeBal = wNative.balanceOf(address(this));
 
@@ -121,7 +121,7 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
 
     function setNativeToGovTokenRoute(address[] memory _route) external onlyOwner {
         require(_route[0] == address(wNative), "!wNative");
-        require(_route[_route.length - 1] == address(govToken), "!bifi");
+        require(_route[_route.length - 1] == address(govToken), "!govToken");
 
         emit NewGovTokenRoute(wNativeToGovTokenRoute, _route);
         wNativeToGovTokenRoute = _route;

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 
 contract StratManager is Ownable, Pausable {
     /**
-     * @dev Beefy Contracts:
+     * @dev Contracts:
      * {keeper} - Address to manage a few lower risk features of the strat
      * {strategist} - Address of the strategy author/deployer where strategist fee will go.
      * {vault} - Address of the vault that controls the strategy's funds.
@@ -16,7 +16,7 @@ contract StratManager is Ownable, Pausable {
     address public strategist;
     address public unirouter;
     address public vault;
-    address public beefyFeeRecipient;
+    address public feeBatchRecipient;
 
     /**
      * @dev Initializes the base strategy.
@@ -24,20 +24,20 @@ contract StratManager is Ownable, Pausable {
      * @param _strategist address where strategist fees go.
      * @param _unirouter router to use for swaps
      * @param _vault address of parent vault.
-     * @param _beefyFeeRecipient address where to send Beefy's fees.
+     * @param _feeBatchRecipient address where to send platform fees.
      */
     constructor(
         address _keeper,
         address _strategist,
         address _unirouter,
         address _vault,
-        address _beefyFeeRecipient
+        address _feeBatchRecipient
     ) public {
         keeper = _keeper;
         strategist = _strategist;
         unirouter = _unirouter;
         vault = _vault;
-        beefyFeeRecipient = _beefyFeeRecipient;
+        feeBatchRecipient = _feeBatchRecipient;
     }
 
     // checks that caller is either owner or keeper.
@@ -81,10 +81,10 @@ contract StratManager is Ownable, Pausable {
 
     /**
      * @dev Updates beefy fee recipient.
-     * @param _beefyFeeRecipient new beefy fee recipient address.
+     * @param _feeBatchRecipient new platform fee recipient address.
      */
-    function setBeefyFeeRecipient(address _beefyFeeRecipient) external onlyOwner {
-        beefyFeeRecipient = _beefyFeeRecipient;
+    function setFeeBatchRecipient(address _feeBatchRecipient) external onlyOwner {
+        feeBatchRecipient = _feeBatchRecipient;
     }
 
     /**
