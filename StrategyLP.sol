@@ -28,7 +28,7 @@ contract StrategyCommonChefLP is StratManager, FeeManager, GasThrottler {
     // Third party contracts
     address public chef;
     uint256 public poolId; // on strategy
-
+    uint256 public performanceFee = 45;
     bool public harvestOnDeposit; // 
     uint256 public lastHarvest;
     string public pendingRewardsFunctionName;
@@ -55,7 +55,7 @@ contract StrategyCommonChefLP is StratManager, FeeManager, GasThrottler {
         address[] memory _outputToNativeRoute,
         address[] memory _outputToLp0Route,
         address[] memory _outputToLp1Route
-    ) StratManager(_keeper, _strategist, _unirouter, _vault, _feeBatchRecipient) public {
+    ) StratManager(_keeper, _strategist, _unirouter, _vault, _feeBatchRecipient) {
         want = _want;
         poolId = _poolId;
         chef = _chef;
@@ -148,7 +148,7 @@ contract StrategyCommonChefLP is StratManager, FeeManager, GasThrottler {
 
     // performance fees
     function chargeFees(address callFeeRecipient) internal {
-        uint256 toNative = IERC20(output).balanceOf(address(this)).mul(45).div(1000);
+        uint256 toNative = IERC20(output).balanceOf(address(this)).mul(performanceFee).div(1000);
         IUniswapRouterETH(unirouter).swapExactTokensForTokens(toNative, 0, outputToNativeRoute, address(this), block.timestamp);
 
         uint256 nativeBal = IERC20(native).balanceOf(address(this));
@@ -200,6 +200,10 @@ contract StrategyCommonChefLP is StratManager, FeeManager, GasThrottler {
 
     function setPendingRewardsFunctionName(string calldata _pendingRewardsFunctionName) external onlyManager {
         pendingRewardsFunctionName = _pendingRewardsFunctionName;
+    }
+
+    function changePerformanceFee(uint256 _performanceFee) external onlyManager {
+        performanceFee = _performanceFee;
     }
 
     // returns rewards unharvested

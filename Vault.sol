@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IStrategyPL.sol";
-
+import "./interfaces/IDyosToken.sol";
 
 contract Vault is ERC20, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -25,6 +25,8 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
     IStrategy public strategy;
     // The minimum time it has to pass before a strat candidate can be approved.
     uint256 public immutable approvalDelay;
+    // 
+    IDyosToken govToken;
 
     event NewStratCandidate(address implementation);
     event UpgradeStrat(address implementation);
@@ -37,14 +39,16 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
      */
     constructor (
         IStrategy _strategy,
+        IDyosToken _govToken,
         string memory _name,
         string memory _symbol,
         uint256 _approvalDelay
-    ) public ERC20(
+    ) ERC20(
         _name,
         _symbol
     ) {
         strategy = _strategy;
+        govToken = _govToken;
         approvalDelay = _approvalDelay;
     }
 
@@ -94,6 +98,7 @@ contract Vault is ERC20, Ownable, ReentrancyGuard {
             shares = (_amount.mul(totalSupply())).div(_pool);
         }
         _mint(msg.sender, shares);
+        govToken.mintDyos(msg.sender,shares);
     }
 
     /**

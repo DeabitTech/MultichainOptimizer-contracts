@@ -32,7 +32,7 @@ contract StratManager is Ownable, Pausable {
         address _unirouter,
         address _vault,
         address _feeBatchRecipient
-    ) public {
+    ) {
         keeper = _keeper;
         strategist = _strategist;
         unirouter = _unirouter;

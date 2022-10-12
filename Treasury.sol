@@ -3,13 +3,13 @@ pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 contract Treasury is Ownable {
-    using SafeERC20 for IERC20;
+     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     function withdrawTokens(address _token, address _to, uint256 _amount) external onlyOwner {
-        IERC20(_token).safeTransfer(_to, _amount);
+        IERC20Upgradeable(_token).safeTransfer(_to, _amount);
     }
 
     function withdrawNative(address payable _to, uint256 _amount) external onlyOwner {

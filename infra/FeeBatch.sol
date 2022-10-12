@@ -39,6 +39,8 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
     address[] public wNativeToGovTokenRoute;
 
     bool public routerInitialized;
+    bool public rewardPoolInitialized;
+
 
     event NewRewardPool(address oldRewardPool, address newRewardPool);
     event NewTreasury(address oldTreasury, address newTreasury);
@@ -57,7 +59,6 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
         govToken = IERC20Upgradeable(_govToken);
         wNative  = IERC20Upgradeable(_wNative);
         treasury = _treasury;
-        rewardPool = _rewardPool;
 
         treasuryFee = 140;
         rewardPoolFee = MAX_FEE - treasuryFee;
@@ -65,11 +66,15 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
         if (_unirouter != address(0x0)) {
             _initRouter(_unirouter);
         }
+        if(_rewardPool != address(0x0)) {
+           rewardPool = _rewardPool;
+           rewardPoolInitialized = true;
+        }
         
         wNativeToGovTokenRoute = [_wNative, _govToken];
     }
 
-    // Main function. Divides platform profits.
+    // Main function. Divides Dyos's profits.
     function harvest() public {
         uint256 wNativeBal = wNative.balanceOf(address(this));
 
@@ -81,16 +86,26 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
             uint256 treasuryAmount = wNativeBal * treasuryFee / MAX_FEE;
             wNative.safeTransfer(treasury, treasuryAmount);
         }
-
-        uint256 rewardPoolAmount = wNativeBal * rewardPoolFee / MAX_FEE;
-        wNative.safeTransfer(rewardPool, rewardPoolAmount);
-        IRewardPool(rewardPool).notifyRewardAmount(rewardPoolAmount);
+        if(rewardPoolInitialized) {
+            uint256 rewardPoolAmount = wNativeBal * rewardPoolFee / MAX_FEE;
+            wNative.safeTransfer(rewardPool, rewardPoolAmount);
+            IRewardPool(rewardPool).notifyRewardAmount(rewardPoolAmount);
+        }
+        else{
+            uint256 rewardPoolAmount = wNativeBal * rewardPoolFee / MAX_FEE;
+            wNative.safeTransfer(treasury, rewardPoolAmount);
+        }
     }
+
+    function changeTreasuryFee(uint256 _treasuryFee) external onlyOwner {
+        treasuryFee = _treasuryFee;
+    } 
 
     // Manage the contract
     function setRewardPool(address _rewardPool) external onlyOwner {
         emit NewRewardPool(rewardPool, _rewardPool);
         rewardPool = _rewardPool;
+        rewardPoolInitialized = true;
     }
 
     function setTreasury(address _treasury) external onlyOwner {
@@ -121,7 +136,7 @@ contract FeeBatch is Initializable, OwnableUpgradeable {
 
     function setNativeToGovTokenRoute(address[] memory _route) external onlyOwner {
         require(_route[0] == address(wNative), "!wNative");
-        require(_route[_route.length - 1] == address(govToken), "!govToken");
+        require(_route[_route.length - 1] == address(govToken), "!dyos");
 
         emit NewGovTokenRoute(wNativeToGovTokenRoute, _route);
         wNativeToGovTokenRoute = _route;
